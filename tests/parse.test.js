@@ -10,7 +10,7 @@ globalThis.window = { Papa };
 
 const { parsePresto, parsePrestoDate, CsvError } = await import("../js/parse.js");
 
-const sampleCsv = readFileSync(new URL("../Presto_Transaction_history.csv", import.meta.url), "utf8");
+const sampleCsv = readFileSync(new URL("../presto-sample.csv", import.meta.url), "utf8");
 const fiveRowCsv = readFileSync(new URL("./fixtures/presto-5-rows.csv", import.meta.url), "utf8");
 
 describe("parsePrestoDate()", () => {
@@ -79,26 +79,26 @@ describe("parsePresto() — the 5-row fixture", () => {
   });
 
   test("counts rows/taps/skips correctly", () => {
-    // St Clair (TTC), Union Station (TTC), PRESTO top-up (skipped),
-    // Union Station Rail (GO), West Harbour GO Rail (GO)
+    // Burlington GO (off), Union Station Rail (GO, on), Union Station (UP, off),
+    // Pearson Station (UP, on), Pearson Station (UP, off) — no PRESTO rows
     assert.equal(result.counts.rows, 5);
-    assert.equal(result.counts.taps, 4);
-    assert.equal(result.counts.skipped, 1);
+    assert.equal(result.counts.taps, 5);
+    assert.equal(result.counts.skipped, 0);
     assert.equal(result.counts.stations, 3);
   });
 
-  test("merges the two Union Station taps into one entry", () => {
+  test("merges the GO + UP Union Station taps into one entry", () => {
     const union = result.stations.find((s) => s.key === "union station");
     assert.ok(union);
     assert.equal(union.visits, 2);
-    assert.ok(union.systems.includes("Toronto Transit Commission"));
     assert.ok(union.systems.includes("GO Transit"));
+    assert.ok(union.systems.includes("Union Pearson Express"));
   });
 
   test("computes the date range across the 5 rows", () => {
     const { start, end } = result.dateRange;
-    assert.equal(start.getTime(), new Date(2026, 7, 15, 20, 5).getTime());
-    assert.equal(end.getTime(), new Date(2026, 7, 23, 12, 47).getTime());
+    assert.equal(start.getTime(), new Date(2026, 8, 1, 8, 10).getTime());
+    assert.equal(end.getTime(), new Date(2026, 8, 7, 13, 31).getTime());
   });
 
   test("stations are sorted by visit count descending", () => {
@@ -114,24 +114,37 @@ describe("parsePresto() — the full sample file", () => {
   });
 
   test("matches the documented counts", () => {
-    assert.equal(result.counts.rows, 110);
-    assert.equal(result.counts.taps, 99);
-    assert.equal(result.counts.stations, 22);
+    assert.equal(result.counts.rows, 62);
+    assert.equal(result.counts.taps, 56);
+    assert.equal(result.counts.stations, 5);
   });
 
   test("covers the documented date range", () => {
     assert.equal(
       result.dateRange.start.getTime(),
-      new Date(2025, 10, 30, 12, 10).getTime()
+      new Date(2026, 5, 3, 8, 15).getTime()
     );
     assert.equal(
       result.dateRange.end.getTime(),
-      new Date(2026, 7, 23, 12, 47).getTime()
+      new Date(2026, 8, 7, 13, 31).getTime()
     );
   });
 
   test("Union Station is the most-visited location", () => {
     assert.equal(result.stations[0].key, "union station");
-    assert.equal(result.stations[0].visits, 38);
+    assert.equal(result.stations[0].visits, 28);
+  });
+
+  test("visit counts run Union > Pearson > Burlington > Aldershot > West Harbour", () => {
+    assert.deepEqual(
+      result.stations.map((s) => [s.canonical, s.visits]),
+      [
+        ["Union Station", 28],
+        ["Pearson Station", 12],
+        ["Burlington GO", 7],
+        ["Aldershot GO", 5],
+        ["West Harbour GO", 4],
+      ]
+    );
   });
 });

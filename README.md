@@ -1,12 +1,14 @@
 # Presto Heatmap
 
-A single-page, no-backend web app. You upload a Presto (Toronto-area transit card)
+You upload a Presto (Toronto-area transit card)
 transaction-history CSV; it geocodes every station/stop you tapped at and renders a
 **Mapbox heatmap weighted by how often you visit each one**, plus a ranked list and the
 date range covered by the file.
 
-`Presto_Transaction_history.csv` in this folder is sample data used for the "Load sample
-data" button and for tests. The real flow works with any valid Presto export.
+`presto-sample.csv` in this folder is a small **synthetic** dataset used for the "Load sample data" button and the tests. The real
+flow works with any valid Presto export.
+
+![Presto Heatmap with the sample data loaded — heat over the Toronto–Hamilton GO corridor and a ranked station list in the sidebar](docs/screenshot.png)
 
 ---
 
@@ -162,8 +164,8 @@ normalized name, e.g.:
 ## Known limitations
 
 - Coordinates are approximate station centroids — fine for a heatmap, not for routing.
-- TTC / GO / UP taps at Union are merged into one `Union Station` point (they're within
-  ~150 m); this makes Union the natural hot spot, which is accurate.
+- TTC / GO / UP Express taps at Union are merged into one `Union Station` point (they're
+  within ~150 m); this makes Union the natural hot spot, which is accurate.
 - GO fare-zone rows (`Zone31`, …) can't be placed and are excluded from the map.
 - Surface-stop geocoding depends on the Mapbox Geocoding API — it counts against your
   account's free monthly quota (100k requests) and needs network access. Results are
@@ -186,14 +188,13 @@ npm test
 | File | Covers |
 | --- | --- |
 | `tests/stations.test.js` | `normalize()` (truncation stripping, GO/intersection rewrites, alias table, non-place filtering) and `resolveCurated()` (curated hits, uncurated misses, the Bloor Station TTC/UP disambiguation, and a sanity check that every curated entry has plausible southern-Ontario coordinates) |
-| `tests/parse.test.js` | `parsePrestoDate()`; `parsePresto()` validation (missing columns, no data rows, nothing geocodable, tolerant header casing/whitespace); the [5-row fixture](tests/fixtures/presto-5-rows.csv) and the full sample file against their documented counts, date ranges, and top station |
+| `tests/parse.test.js` | `parsePrestoDate()`; `parsePresto()` validation (missing columns, no data rows, nothing geocodable, tolerant header casing/whitespace); the [5-row fixture](tests/fixtures/presto-5-rows.csv) and the full sample (62 rows → 56 taps across 5 stations, `3 Jun – 7 Sep 2026`, Union Station top at 28) |
 | `tests/geocode.test.js` | `geocodeStations()` with `fetch`/`localStorage` mocked: curated stations skip the network, uncurated ones call the Geocoding API and get cached, no-match / HTTP-error / offline responses land in `unresolved` with a reason, and every input station ends up counted exactly once |
 
 `tests/fixtures/presto-5-rows.csv` is the header plus the first 5 data rows of
-`Presto_Transaction_history.csv`, used as a small hand-checkable fixture alongside the
-full sample.
+`presto-sample.csv`, used as a small hand-checkable fixture alongside the full sample.
 
 Manual end-to-end check: serve the folder, add a real `pk.` token, click **Load sample
-data** → heatmap over the Toronto–Hamilton corridor, Union Station hottest, summary line
-shows `99 taps · 30 Nov 2025 – 23 Aug 2026`; zoom in for circles + popups; drag the CSV
+data** → heatmap over the Toronto–Hamilton GO corridor, Union Station hottest, summary line
+shows `56 taps · 3 Jun 2026 – 7 Sep 2026`; zoom in for circles + popups; drag the CSV
 file itself for the same result; drag an unrelated CSV for a validation error.
