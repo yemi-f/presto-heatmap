@@ -1,0 +1,11 @@
+# Local Mapbox token — never commit this
+config.js
+
+# OS / editor cruft
+.DS_Store
+*.log
+
+# npm (papaparse, installed for tests/parse.test.js)
+node_modules/
+
+Presto_Transaction_history.csv
