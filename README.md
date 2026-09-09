@@ -5,7 +5,7 @@ transaction-history CSV; it geocodes every station/stop you tapped at and render
 **Mapbox heatmap weighted by how often you visit each one**, plus a ranked list and the
 date range covered by the file.
 
-`presto-sample.csv` in this folder is a small **synthetic** dataset used for the "Load sample data" button and the tests. The real
+`presto-sample.csv` is a small **synthetic** dataset used for the "Load sample data" button and the tests. The real
 flow works with any valid Presto export.
 
 ![Presto Heatmap with the sample data loaded — heat over the Toronto–Hamilton GO corridor and a ranked station list in the sidebar](docs/screenshot.png)
