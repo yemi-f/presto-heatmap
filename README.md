@@ -1,9 +1,9 @@
 # Presto Heatmap
 
-You upload a Presto (Toronto-area transit card)
-transaction-history CSV; it geocodes every station/stop you tapped at and renders a
-**Mapbox heatmap weighted by how often you visit each one**, plus a ranked list and the
-date range covered by the file.
+**A Strava-like heatmap of Presto card taps.** Upload a Presto (Toronto-area transit
+card) transaction-history CSV; it geocodes every station or stop you tapped at and
+renders a **Mapbox heatmap weighted by how often you go there**, plus a ranked list and
+the date range covered by the file.
 
 `presto-sample.csv` is a small **synthetic** dataset used for the "Load sample data" button and the tests. The real
 flow works with any valid Presto export.
