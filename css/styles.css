@@ -373,6 +373,17 @@ button.link {
   color: var(--muted);
 }
 
+.colophon a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.colophon a:hover,
+.colophon a:focus-visible {
+  color: var(--accent);
+}
+
 /* ---------- map ---------- */
 
 #map {

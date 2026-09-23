@@ -9,7 +9,7 @@ No API keys or accounts needed: the map is [MapLibre GL](https://maplibre.org) w
 [VersaTiles](https://versatiles.org) style (`assets/map-style.json`, free OpenStreetMap tiles),
 and surface stops are geocoded with [Photon](https://photon.komoot.io) (OpenStreetMap data).
 
-`presto-sample.csv` is a small **synthetic** dataset used for the "Load sample data" button and the tests. The real
+`assets/presto-sample.csv` is a small **synthetic** dataset used for the "Load sample data" button and the tests. The real
 flow works with any valid Presto export.
 
 ![Presto Heatmap with the sample data loaded — heat over the Toronto–Hamilton GO corridor and a ranked station list in the sidebar](docs/screenshot.png)
@@ -175,7 +175,7 @@ npm test
 | `tests/geocode.test.js` | `geocodeStations()` with `fetch`/`localStorage` mocked: curated stations skip the network, uncurated ones call Photon and get cached, no-match / HTTP-error / offline responses land in `unresolved` with a reason, and every input station ends up counted exactly once |
 
 `tests/fixtures/presto-5-rows.csv` is the header plus the first 5 data rows of
-`presto-sample.csv`, used as a small hand-checkable fixture alongside the full sample.
+`assets/presto-sample.csv`, used as a small hand-checkable fixture alongside the full sample.
 
 Manual end-to-end check: serve the folder, click **Load sample
 data** → heatmap over the Toronto–Hamilton GO corridor, Union Station hottest, summary line

@@ -327,7 +327,7 @@ function wireInputs() {
   els.sampleBtn.addEventListener("click", async () => {
     setStatus("Loading sample data…", "working");
     try {
-      const res = await fetch("./presto-sample.csv");
+      const res = await fetch("./assets/presto-sample.csv");
       if (!res.ok) throw new Error(String(res.status));
       await handleCsvText(await res.text(), "Sample");
     } catch {

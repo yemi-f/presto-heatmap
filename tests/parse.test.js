@@ -10,7 +10,7 @@ globalThis.window = { Papa };
 
 const { parsePresto, parsePrestoDate, CsvError } = await import("../js/parse.js");
 
-const sampleCsv = readFileSync(new URL("../presto-sample.csv", import.meta.url), "utf8");
+const sampleCsv = readFileSync(new URL("../assets/presto-sample.csv", import.meta.url), "utf8");
 const fiveRowCsv = readFileSync(new URL("./fixtures/presto-5-rows.csv", import.meta.url), "utf8");
 
 describe("parsePrestoDate()", () => {
