@@ -6,9 +6,6 @@
     "versatiles:metadataVersion": 1,
     "versatiles:builder": "osm",
     "versatiles:options": {
-      "features": {
-        "buildings": "extruded"
-      },
       "theme": "muted-dark"
     }
   },
@@ -778,6 +775,29 @@
         "line-join": "round"
       },
       "minzoom": 11,
+      "source": "versatiles-shortbread"
+    },
+    {
+      "id": "building:outline",
+      "type": "fill",
+      "source-layer": "buildings",
+      "paint": {
+        "fill-color": "rgb(51,50,49)",
+        "fill-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0, 15, 1]
+      },
+      "minzoom": 14,
+      "source": "versatiles-shortbread"
+    },
+    {
+      "id": "building",
+      "type": "fill",
+      "source-layer": "buildings",
+      "paint": {
+        "fill-color": "rgb(45,43,40)",
+        "fill-translate": [-2, -2],
+        "fill-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0, 15, 1]
+      },
+      "minzoom": 14,
       "source": "versatiles-shortbread"
     },
     {
@@ -9214,28 +9234,6 @@
       },
       "minzoom": 2,
       "maxzoom": 9,
-      "source": "versatiles-shortbread"
-    },
-    {
-      "id": "building-3d",
-      "type": "fill-extrusion",
-      "source-layer": "buildings",
-      "filter": ["!=", ["get", "hide_3d"], true],
-      "paint": {
-        "fill-extrusion-color": "rgb(45,43,40)",
-        "fill-extrusion-opacity": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          14,
-          0,
-          15,
-          0.7
-        ],
-        "fill-extrusion-height": ["coalesce", ["get", "height"], 5],
-        "fill-extrusion-base": ["coalesce", ["get", "min_height"], 0]
-      },
-      "minzoom": 14,
       "source": "versatiles-shortbread"
     }
   ],
