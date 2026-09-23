@@ -84,13 +84,14 @@ function initMap() {
       },
     }, beforeId);
 
+    const visibleRadius = ["interpolate", ["linear"], ["get", "visits"], 1, 4, 40, 22];
     map.addLayer({
       id: "stations-point",
       type: "circle",
       source: "stations",
       minzoom: 11,
       paint: {
-        "circle-radius": ["interpolate", ["linear"], ["get", "visits"], 1, 4, 40, 22],
+        "circle-radius": visibleRadius,
         "circle-color": "rgb(239,138,98)",
         "circle-stroke-color": "#ffffff",
         "circle-stroke-width": 1,
@@ -98,12 +99,30 @@ function initMap() {
       },
     }, beforeId);
 
-    map.on("click", "stations-point", (e) => {
+    // Heatmaps can't be clicked, so an invisible circle per station catches clicks at every
+    // zoom. It's a bit smaller than the glow so near-misses between spots stay empty, and
+    // never smaller than the visible circle.
+    map.addLayer({
+      id: "stations-hit",
+      type: "circle",
+      source: "stations",
+      paint: {
+        "circle-radius": [
+          "interpolate", ["linear"], ["zoom"],
+          8, ["max", 9, visibleRadius],
+          15, ["max", 24, visibleRadius],
+        ],
+        "circle-color": "rgba(0,0,0,0)",
+        "circle-opacity": 0,
+      },
+    }, beforeId);
+
+    map.on("click", "stations-hit", (e) => {
       const f = e.features[0];
       showPopup(f.geometry.coordinates.slice(), f.properties);
     });
-    map.on("mouseenter", "stations-point", () => (map.getCanvas().style.cursor = "pointer"));
-    map.on("mouseleave", "stations-point", () => (map.getCanvas().style.cursor = ""));
+    map.on("mouseenter", "stations-hit", () => (map.getCanvas().style.cursor = "pointer"));
+    map.on("mouseleave", "stations-hit", () => (map.getCanvas().style.cursor = ""));
 
     mapReady = true;
     if (pendingData) {
