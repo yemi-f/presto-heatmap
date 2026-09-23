@@ -6,7 +6,7 @@ renders a **heatmap weighted by how often you go there**, plus a ranked list and
 the date range covered by the file.
 
 No API keys or accounts needed: the map is [MapLibre GL](https://maplibre.org) with a custom
-[VersaTiles](https://versatiles.org) style (`assets/map-style.json`, free OpenStreetMap tiles),
+[VersaTiles](https://tiles.versatiles.org/) style (`assets/map-style.json`, free OpenStreetMap tiles),
 and surface stops are geocoded with [Photon](https://photon.komoot.io) (OpenStreetMap data).
 
 `assets/presto-sample.csv` is a small **synthetic** dataset used for the "Load sample data" button and the tests. The real
