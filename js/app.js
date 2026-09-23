@@ -40,6 +40,7 @@ let map = null;
 let mapReady = false;
 let pendingData = null;
 let activePopup = null; // only one open at a time
+let dataBounds = null; // bounds of the last loaded dataset, for the recenter button
 
 function setStatus(msg, kind = "") {
   els.status.textContent = msg || "";
@@ -63,6 +64,7 @@ function initMap() {
     zoom: 9.5,
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+  map.addControl(new RecenterControl(), "top-right");
 
   map.on("load", () => {
     map.addSource("stations", { type: "geojson", data: emptyFC() });
@@ -119,6 +121,41 @@ function initMap() {
 }
 
 const emptyFC = () => ({ type: "FeatureCollection", features: [] });
+
+// Fit the loaded data (or the default Toronto view), flat and north-up.
+function recenter(duration = 700) {
+  const cam = (dataBounds &&
+    map.cameraForBounds(dataBounds, { padding: 60, maxZoom: 13, bearing: 0 })) || {
+    center: TORONTO,
+    zoom: 9.5,
+  };
+  map.easeTo({ ...cam, bearing: 0, pitch: 0, duration });
+}
+
+// A button in MapLibre's own control group, so it matches the zoom buttons.
+class RecenterControl {
+  onAdd() {
+    this._el = document.createElement("div");
+    this._el.className = "maplibregl-ctrl maplibregl-ctrl-group";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.title = "Recenter map";
+    btn.setAttribute("aria-label", "Recenter map");
+    // Centre dot with four arrows pointing in at it.
+    btn.innerHTML =
+      '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style="display:block;margin:auto">' +
+      '<path d="M8 1v4.5M5.8 3.3 8 5.5l2.2-2.2M8 15v-4.5M5.8 12.7 8 10.5l2.2 2.2' +
+      'M1 8h4.5M3.3 5.8 5.5 8l-2.2 2.2M15 8h-4.5M12.7 5.8 10.5 8l2.2 2.2" ' +
+      'fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="8" cy="8" r="1.5" fill="currentColor"/></svg>';
+    btn.addEventListener("click", () => recenter());
+    this._el.appendChild(btn);
+    return this._el;
+  }
+  onRemove() {
+    this._el.remove();
+  }
+}
 
 function showPopup(lngLat, props) {
   if (activePopup) activePopup.remove(); // keep at most one open
@@ -209,7 +246,8 @@ function applyData(fc) {
   if (!fc.features.length) return;
   const bb = new maplibregl.LngLatBounds();
   fc.features.forEach((f) => bb.extend(f.geometry.coordinates));
-  map.fitBounds(bb, { padding: 60, maxZoom: 13, duration: 700 });
+  dataBounds = bb;
+  recenter();
 }
 
 // ---------- sidebar ----------
