@@ -1,4 +1,4 @@
-# Local Mapbox token — never commit this
+# Legacy local config (held a Mapbox token; no longer used) — never commit
 config.js
 
 # OS / editor cruft

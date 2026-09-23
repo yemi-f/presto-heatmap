@@ -2,7 +2,7 @@
   "name": "presto-heatmap",
   "private": true,
   "type": "module",
-  "description": "Upload a Presto transaction CSV, get a Mapbox heatmap of the stations you've visited.",
+  "description": "Upload a Presto transaction CSV, get a heatmap of the stations you've visited.",
   "scripts": {
     "test": "node --test"
   },

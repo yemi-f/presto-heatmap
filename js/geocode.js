@@ -1,13 +1,14 @@
 // Turn aggregated stations into coordinates: curated table first, then a
-// localStorage cache, then the Mapbox Geocoding API. Results (including misses)
-// are cached so repeat uploads don't re-hit the API.
+// localStorage cache, then the Photon geocoder (OpenStreetMap data, no API key).
+// Results (including misses) are cached so repeat uploads don't re-hit the API.
 
 import { resolveCurated } from "./stations.js";
 
-const CACHE_KEY = "presto_geocode_cache_v1";
-const PROXIMITY = "-79.3832,43.6532"; // downtown Toronto
+const CACHE_KEY = "presto_geocode_cache_v2"; // v1 held the previous geocoder's results
+const PHOTON_URL = "https://photon.komoot.io/api/";
+const PROXIMITY = { lat: "43.6532", lon: "-79.3832" }; // downtown Toronto
 const BBOX = "-80.9,42.8,-78.2,44.6"; // Greater Golden Horseshoe-ish
-const CONCURRENCY = 4;
+const CONCURRENCY = 2; // public, free instance — keep it gentle
 
 function loadCache() {
   try {
@@ -25,32 +26,33 @@ function saveCache(cache) {
   }
 }
 
-async function mapboxGeocode(query, token) {
-  const url =
-    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-      query
-    )}.json?access_token=${encodeURIComponent(token)}` +
-    `&country=ca&language=en&limit=1&types=poi,address,place,neighborhood` +
-    `&proximity=${PROXIMITY}&bbox=${BBOX}`;
+async function photonGeocode(query) {
+  const params = new URLSearchParams({
+    q: query,
+    limit: "1",
+    lang: "en",
+    lat: PROXIMITY.lat,
+    lon: PROXIMITY.lon,
+    bbox: BBOX,
+  });
 
-  const res = await fetch(url);
-  if (!res.ok) {
-    const detail = res.status === 401 ? " (token rejected)" : "";
-    throw new Error(`Mapbox geocoding failed: ${res.status}${detail}`);
-  }
+  const res = await fetch(`${PHOTON_URL}?${params}`);
+  if (!res.ok) throw new Error(`Photon geocoding failed: ${res.status}`);
   const json = await res.json();
   const feature = json.features && json.features[0];
   if (!feature) return null;
-  return { lng: feature.center[0], lat: feature.center[1], place: feature.place_name };
+  const [lng, lat] = feature.geometry.coordinates;
+  const p = feature.properties || {};
+  const place = [p.name, p.street, p.city].filter(Boolean).join(", ");
+  return { lng, lat, place };
 }
 
 /**
  * @param {Array} stations  from parsePresto().stations
- * @param {string} token     Mapbox public token
  * @param {(done:number,total:number)=>void} [onProgress]
  * @returns {Promise<{resolved: Array, unresolved: Array}>}
  */
-export async function geocodeStations(stations, token, onProgress) {
+export async function geocodeStations(stations, onProgress) {
   const cache = loadCache();
   const resolved = [];
   const unresolved = [];
@@ -72,14 +74,11 @@ export async function geocodeStations(stations, token, onProgress) {
       return cached ? { ...cached, source: "cache" } : null;
     }
 
-    const hit = await mapboxGeocode(
-      `${station.canonical}, Toronto, Ontario, Canada`,
-      token
-    );
+    const hit = await photonGeocode(`${station.canonical}, Toronto, Ontario, Canada`);
     const value = hit ? { lat: hit.lat, lng: hit.lng, place: hit.place } : null;
     cache[station.key] = value;
     cacheDirty = true;
-    return value ? { ...value, source: "mapbox" } : null;
+    return value ? { ...value, source: "photon" } : null;
   }
 
   async function worker() {

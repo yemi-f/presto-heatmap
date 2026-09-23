@@ -1,15 +1,12 @@
-// Wires the UI together: token -> map -> (CSV upload) -> parse -> geocode ->
+// Wires the UI together: map -> (CSV upload) -> parse -> geocode ->
 // GeoJSON heatmap + sidebar.
 
+import * as maplibregl from "https://unpkg.com/maplibre-gl@6.11.1/dist/maplibre-gl.mjs";
 import { parsePresto, CsvError } from "./parse.js";
 import { geocodeStations } from "./geocode.js";
 
 const $ = (sel) => document.querySelector(sel);
 const els = {
-  tokenSection: $("#token-section"),
-  tokenInput: $("#token-input"),
-  tokenRemember: $("#token-remember"),
-  tokenSave: $("#token-save"),
   dropzone: $("#dropzone"),
   fileInput: $("#file-input"),
   browse: $("#browse"),
@@ -26,8 +23,9 @@ const els = {
   legend: $("#legend"),
 };
 
-const TOKEN_KEY = "presto_mapbox_token";
 const TORONTO = [-79.3832, 43.6532];
+const MAP_STYLE = "assets/map-style.json";
+const LABELS_SLOT = "slot-below-labels"; // VersaTiles insertion point: data draws under place names
 const HEATMAP_COLOR = [
   "interpolate", ["linear"], ["heatmap-density"],
   0, "rgba(33,102,172,0)",
@@ -55,54 +53,20 @@ function escapeHtml(s) {
   );
 }
 
-// ---------- token ----------
-
-function getToken() {
-  const fromConfig = (window.MAPBOX_TOKEN || "").trim();
-  if (fromConfig) return fromConfig;
-  try {
-    return (localStorage.getItem(TOKEN_KEY) || "").trim();
-  } catch {
-    return "";
-  }
-}
-
-function initTokenUI(onReady) {
-  els.tokenSection.hidden = false;
-  setStatus("Add a Mapbox token to begin.");
-  els.tokenSave.addEventListener("click", () => {
-    const t = els.tokenInput.value.trim();
-    if (!/^pk\./.test(t)) {
-      setStatus("That doesn't look like a public token (it should start with 'pk.').", "error");
-      return;
-    }
-    if (els.tokenRemember.checked) {
-      try {
-        localStorage.setItem(TOKEN_KEY, t);
-      } catch {
-        /* private mode — token stays in memory only */
-      }
-    }
-    els.tokenSection.hidden = true;
-    setStatus("");
-    onReady(t);
-  });
-}
-
 // ---------- map ----------
 
-function initMap(token) {
-  mapboxgl.accessToken = token;
-  map = new mapboxgl.Map({
+function initMap() {
+  map = new maplibregl.Map({
     container: "map",
-    style: "mapbox://styles/mapbox/dark-v11",
+    style: MAP_STYLE,
     center: TORONTO,
-    zoom: 9,
+    zoom: 9.5,
   });
-  map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
   map.on("load", () => {
     map.addSource("stations", { type: "geojson", data: emptyFC() });
+    const beforeId = map.getLayer(LABELS_SLOT) ? LABELS_SLOT : undefined;
 
     map.addLayer({
       id: "stations-heat",
@@ -116,7 +80,7 @@ function initMap(token) {
         "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 8, 14, 15, 40],
         "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 12, 0.9, 17, 0.35],
       },
-    });
+    }, beforeId);
 
     map.addLayer({
       id: "stations-point",
@@ -130,7 +94,7 @@ function initMap(token) {
         "circle-stroke-width": 1,
         "circle-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0.15, 13, 0.85],
       },
-    });
+    }, beforeId);
 
     map.on("click", "stations-point", (e) => {
       const f = e.features[0];
@@ -146,10 +110,10 @@ function initMap(token) {
     }
   });
 
-  map.on("error", (e) => {
-    const m = (e && e.error && e.error.message) || "";
-    if (/access token|401|unauthorized|not authorized/i.test(m)) {
-      setStatus("Mapbox rejected that token. Fix it and reload the page.", "error");
+  map.on("error", () => {
+    // Only surface a failure to load the base map itself; ignore one-off tile hiccups.
+    if (!mapReady) {
+      setStatus("Couldn't load the map. Check your connection and reload the page.", "error");
     }
   });
 }
@@ -161,7 +125,7 @@ function showPopup(lngLat, props) {
 
   const visits = Number(props.visits);
   const systems = props.systems ? ` · ${props.systems}` : "";
-  activePopup = new mapboxgl.Popup({ closeButton: true, offset: 10 })
+  activePopup = new maplibregl.Popup({ closeButton: true, offset: 10 })
     .setLngLat(lngLat)
     .setHTML(
       `<h3>${escapeHtml(props.name)}</h3>` +
@@ -195,7 +159,6 @@ async function handleCsvText(text, label) {
 
   const { resolved, unresolved } = await geocodeStations(
     parsed.stations,
-    mapboxgl.accessToken,
     (done, total) => setStatus(`Geocoding ${done}/${total}…`, "working")
   );
 
@@ -244,7 +207,7 @@ function applyData(fc) {
   const src = map.getSource("stations");
   if (src) src.setData(fc);
   if (!fc.features.length) return;
-  const bb = new mapboxgl.LngLatBounds();
+  const bb = new maplibregl.LngLatBounds();
   fc.features.forEach((f) => bb.extend(f.geometry.coordinates));
   map.fitBounds(bb, { padding: 60, maxZoom: 13, duration: 700 });
 }
@@ -410,7 +373,7 @@ function wireSidebarToggle() {
     b.addEventListener("click", () => {
       collapsed = !collapsed;
       apply(collapsed, true);
-      // keep the Mapbox canvas in step with the size transition
+      // keep the map canvas in step with the size transition
       const start = performance.now();
       (function tick(now) {
         if (map) map.resize();
@@ -426,16 +389,6 @@ function wireSidebarToggle() {
 
 // ---------- boot ----------
 
-function start(token) {
-  initMap(token);
-  wireInputs();
-}
-
 wireSidebarToggle();
-
-const existingToken = getToken();
-if (existingToken) {
-  start(existingToken);
-} else {
-  initTokenUI(start);
-}
+initMap();
+wireInputs();

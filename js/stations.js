@@ -1,7 +1,7 @@
 // Turns messy Presto "Location" strings into a canonical name + key, and holds a
 // curated name -> coordinate lookup for known Toronto-area transit stations so the
 // common cases resolve instantly and offline. Anything not found here falls back to
-// the Mapbox Geocoding API (see geocode.js).
+// the Photon geocoder (see geocode.js).
 
 // --- normalisation --------------------------------------------------------------
 

@@ -34,12 +34,20 @@ globalThis.fetch = (url) => {
 
 const { geocodeStations } = await import("../js/geocode.js");
 
-// A mock Mapbox Geocoding API response landing near downtown Toronto.
-function mockGeocodeOk(lng = -79.39, lat = 43.65, place = "Mock Place, Toronto, ON") {
+// A mock Photon (GeoJSON) response landing near downtown Toronto.
+function mockGeocodeOk(lng = -79.39, lat = 43.65, name = "Mock Place") {
   return {
     ok: true,
     status: 200,
-    json: async () => ({ features: [{ center: [lng, lat], place_name: place }] }),
+    json: async () => ({
+      features: [
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [lng, lat] },
+          properties: { name, city: "Toronto" },
+        },
+      ],
+    }),
   };
 }
 
@@ -70,7 +78,7 @@ describe("geocodeStations()", () => {
       provider: "Toronto Transit Commission",
     });
 
-    const { resolved, unresolved } = await geocodeStations([stClair], "pk.test");
+    const { resolved, unresolved } = await geocodeStations([stClair]);
 
     assert.equal(unresolved.length, 0);
     assert.equal(resolved.length, 1);
@@ -80,34 +88,36 @@ describe("geocodeStations()", () => {
     assert.equal(fetchCalls.length, 0);
   });
 
-  test("falls back to the Mapbox Geocoding API for uncurated locations", async () => {
+  test("falls back to the Photon geocoder for uncurated locations", async () => {
     const intersection = station({
       key: "college st & grace st",
       canonical: "College St & Grace St",
       provider: "Toronto Transit Commission",
     });
 
-    const { resolved, unresolved } = await geocodeStations([intersection], "pk.test");
+    const { resolved, unresolved } = await geocodeStations([intersection]);
 
     assert.equal(unresolved.length, 0);
     assert.equal(resolved.length, 1);
-    assert.equal(resolved[0].source, "mapbox");
+    assert.equal(resolved[0].source, "photon");
+    assert.equal(resolved[0].lng, -79.39);
+    assert.equal(resolved[0].lat, 43.65);
     assert.equal(fetchCalls.length, 1);
-    assert.match(fetchCalls[0], /^https:\/\/api\.mapbox\.com\/geocoding\/v5\/mapbox\.places\//);
-    assert.match(fetchCalls[0], /access_token=pk\.test/);
+    assert.match(fetchCalls[0], /^https:\/\/photon\.komoot\.io\/api\/\?/);
+    assert.doesNotMatch(fetchCalls[0], /access_token|key=/);
   });
 
-  test("caches Mapbox results across calls so a repeat lookup skips the network", async () => {
+  test("caches geocoder results across calls so a repeat lookup skips the network", async () => {
     const intersection = station({
       key: "queen st west & john st",
       canonical: "Queen St West & John St",
       provider: "Toronto Transit Commission",
     });
 
-    await geocodeStations([intersection], "pk.test");
+    await geocodeStations([intersection]);
     assert.equal(fetchCalls.length, 1);
 
-    await geocodeStations([station({ ...intersection })], "pk.test");
+    await geocodeStations([station({ ...intersection })]);
     assert.equal(fetchCalls.length, 1, "second lookup should hit the cache, not fetch again");
   });
 
@@ -119,7 +129,7 @@ describe("geocodeStations()", () => {
       provider: "Toronto Transit Commission",
     });
 
-    const { resolved, unresolved } = await geocodeStations([nowhere], "pk.test");
+    const { resolved, unresolved } = await geocodeStations([nowhere]);
 
     assert.equal(resolved.length, 0);
     assert.equal(unresolved.length, 1);
@@ -128,18 +138,18 @@ describe("geocodeStations()", () => {
   });
 
   test("marks a location unresolved (with a reason) on an HTTP error", async () => {
-    fetchImpl = () => ({ ok: false, status: 401 });
+    fetchImpl = () => ({ ok: false, status: 429 });
     const s = station({
       key: "somewhere",
       canonical: "Somewhere",
       provider: "Toronto Transit Commission",
     });
 
-    const { resolved, unresolved } = await geocodeStations([s], "pk.bad-token");
+    const { resolved, unresolved } = await geocodeStations([s]);
 
     assert.equal(resolved.length, 0);
     assert.equal(unresolved.length, 1);
-    assert.match(unresolved[0].reason, /401/);
+    assert.match(unresolved[0].reason, /429/);
   });
 
   test("marks a location unresolved when fetch itself rejects (offline)", async () => {
@@ -150,7 +160,7 @@ describe("geocodeStations()", () => {
       provider: "Toronto Transit Commission",
     });
 
-    const { resolved, unresolved } = await geocodeStations([s], "pk.test");
+    const { resolved, unresolved } = await geocodeStations([s]);
 
     assert.equal(resolved.length, 0);
     assert.equal(unresolved.length, 1);
@@ -170,7 +180,7 @@ describe("geocodeStations()", () => {
       station({ key: "c-fails", canonical: "College St & Fails St", provider: "TTC" }),
     ];
 
-    const { resolved, unresolved } = await geocodeStations(stations, "pk.test");
+    const { resolved, unresolved } = await geocodeStations(stations);
 
     assert.equal(resolved.length + unresolved.length, stations.length);
     const seenKeys = new Set([...resolved, ...unresolved].map((s) => s.key));
@@ -184,7 +194,7 @@ describe("geocodeStations()", () => {
       station({ key: "x3", canonical: "X3 St & Y St", provider: "TTC" }),
     ];
     const ticks = [];
-    await geocodeStations(stations, "pk.test", (done, total) => ticks.push([done, total]));
+    await geocodeStations(stations, (done, total) => ticks.push([done, total]));
 
     assert.equal(ticks.length, stations.length);
     assert.deepEqual(

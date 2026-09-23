@@ -6,7 +6,7 @@
     <title>Presto Heatmap</title>
 
     <link
-      href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css"
+      href="https://unpkg.com/maplibre-gl@6.11.1/dist/maplibre-gl.css"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/styles.css" />
@@ -53,33 +53,6 @@
           </p>
         </header>
 
-        <section id="token-section" hidden>
-          <h2>Mapbox token needed</h2>
-          <p class="hint">
-            Paste a Mapbox <strong>public</strong> token (starts with
-            <code>pk.</code>), or add it to <code>config.js</code>.
-          </p>
-          <input
-            id="token-input"
-            type="password"
-            placeholder="pk.eyJ1Ijoi…"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <label class="checkbox">
-            <input type="checkbox" id="token-remember" /> Remember on this device
-          </label>
-          <button id="token-save">Use token</button>
-          <p class="hint">
-            Get one at
-            <a
-              href="https://account.mapbox.com/access-tokens/"
-              target="_blank"
-              rel="noopener"
-              >account.mapbox.com</a
-            >.
-          </p>
-        </section>
 
         <section id="upload-section">
           <div id="dropzone" tabindex="0" role="button" aria-label="Upload CSV">
@@ -116,7 +89,11 @@
             <span class="ramp"></span>
             <span>more visits</span>
           </div>
-          <p class="colophon">Coordinates are approximate station centroids.</p>
+          <p class="colophon">
+            Coordinates are approximate station centroids. Stop lookup by
+            <a href="https://photon.komoot.io" target="_blank" rel="noopener">Photon</a>
+            / OpenStreetMap.
+          </p>
         </footer>
       </aside>
 
@@ -153,9 +130,7 @@
       <main id="map"></main>
     </div>
 
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-    <script src="config.js"></script>
     <script type="module" src="js/app.js"></script>
   </body>
 </html>
